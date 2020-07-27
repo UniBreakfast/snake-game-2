@@ -1,10 +1,11 @@
 const ctx = canv.getContext('2d')
 
 const snake = {
-    color: 'lime',
+    color: '#1fb9dd',
+    colorHead: '#00ffff',
     length: 400,
     width: 20,
-    tick: 10,
+    tick: 30,
     parts: [
         {
             x: 100,
@@ -37,11 +38,33 @@ function drawSnake() {
     ctx.fillStyle = snake.color
     snake.parts.forEach(part => {
         // ctx.fillStyle = rndColor()
-        if (part.dir == 'up' || part.dir == 'down')
-            ctx.fillRect(part.x, part.y, snake.width, part.length)
-        else
-            ctx.fillRect(part.x, part.y, part.length, snake.width)
+        if (part.dir == 'up' || part.dir == 'down')  ctx.fillRect(part.x, part.y, snake.width, part.length)
+        else ctx.fillRect(part.x, part.y, part.length, snake.width)
     })
+    drawSnakeHead()
+}
+
+function drawSnakeHead() {
+    let head = snake.parts[snake.parts.length - 1]
+    ctx.fillStyle = snake.colorHead
+    if (head.length > snake.width) {
+        if (head.dir == 'up' || head.dir == 'left') ctx.fillRect(head.x, head.y, snake.width, snake.width)
+        else if (head.dir == 'down') ctx.fillRect(head.x, head.y + head.length - snake.width, snake.width, snake.width)
+        else ctx.fillRect(head.x + head.length - snake.width, head.y, snake.width, snake.width)
+    } else {
+        if (head.dir == 'up' || head.dir == 'down')  ctx.fillRect(head.x, head.y, snake.width, head.length)
+        else ctx.fillRect(head.x, head.y, head.length, snake.width)
+        const neck = snake.parts[snake.parts.length - 2]
+        if (head.dir == 'up') ctx.fillRect(head.x, neck.y, snake.width, snake.width - head.length)
+        else if (head.dir == 'down') ctx.fillRect(head.x, neck.y + head.length,
+            snake.width, snake.width - head.length)
+        else if (head.dir == 'left') ctx.fillRect(neck.x, head.y, snake.width - head.length, snake.width)
+        // else if (head.dir == 'right' && neck.dir == 'up') ctx.fillRect()
+        else ctx.fillRect(neck.x + head.length, head.y, snake.width - head.length, snake.width)
+        if (head.dir == 'up' || head.dir == 'left') ctx.fillRect(head.x, head.y, snake.width, snake.width)
+        else if (head.dir == 'down') ctx.fillRect(head.x, head.y + head.length - snake.width, snake.width, snake.width)
+        else ctx.fillRect(head.x + head.length - snake.width, head.y, snake.width, snake.width)
+    }
 }
 
 function rndColor() {

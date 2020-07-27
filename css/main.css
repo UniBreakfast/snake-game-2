@@ -11,9 +11,10 @@ body {
     align-items: center;
     flex-direction: column;
     min-height: 100vh;
+    background: #1f293c;
 }
 
 #canv {
-    background: #2c2c2c;
+    background: #2a3953;
     border-radius: 3px;
 }
