@@ -10,7 +10,7 @@ const apple = {
 const snake = {
     color: '#1fb9dd',
     colorHead: '#00ffff',
-    colorApple: 'red',
+    colorApple: '#d86464',
     length: 400,
     width: 20,
     tick: 10,
@@ -41,6 +41,9 @@ const snake = {
         }
     ]
 }
+
+nextColors.deg = 0;
+[snake.color, snake.colorHead] = nextColors()
 
 function drawSnake() {
     ctx.fillStyle = snake.color
@@ -88,6 +91,11 @@ function drawSnakeHead() {
 function rndColor() {
     return '#' + Math.floor(Math.random() * 16777216).toString(16).padStart(6, 0)
 }
+
+function nextColors() {
+    return [`hsl(${nextColors.deg++} 65% 50%)`, `hsl(${nextColors.deg++} 65% 30%)`]
+}
+
 
 function checkAppleCollision() {
     if (apple.eaten) return
@@ -162,8 +170,7 @@ function tick() {
     }
 
     if (checkSnakeCollision()) {
-        snake.color = rndColor()
-        snake.colorHead = rndColor()
+        [snake.color, snake.colorHead] = nextColors()
     }
 
     if (snake.nextDir && (head.length > snake.width || snake.nextDir == snake.parts[snake.parts.length - 2].dir)) {
