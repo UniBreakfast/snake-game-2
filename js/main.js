@@ -14,6 +14,7 @@ const snake = {
     length: 400,
     width: 20,
     tick: 10,
+    power: 0,
     parts: [
         {
             x: 100,
@@ -42,6 +43,13 @@ const snake = {
     ]
 }
 
+const blocks = []
+
+onload = onresize = () => {
+    if (innerWidth <= 1065) canv.width = 750
+    if (innerWidth <= 785) canv.width = 600
+}
+
 nextColors.deg = 0;
 [snake.color, snake.colorHead] = nextColors()
 
@@ -58,6 +66,45 @@ function drawSnake() {
 function drawApple() {
     ctx.fillStyle = snake.colorApple
     ctx.fillRect(apple.x, apple.y, apple.width, apple.width)
+}
+
+function drawBlocks() {
+    ctx.fillStyle = '#425870'
+    blocks.forEach(coords => {
+        ctx.fillRect(coords.x, coords.y, snake.width * 2, snake.width * 2)
+    })
+}
+
+function drawBlocks2() {
+    const image = ctx.getImageData(0, 0, canv.width, canv.height)
+    const { data } = image
+    const steps = data.length / 4
+    
+    for (let i = 0; i < steps; i += 4) {
+        const color = data.slice(i, i + 4).join()
+        if (color == '0,0,0,0' || color == '66,88,112,255') continue
+        else data[i] = data[i + 1] = data[i + 2] = data[i + 3] = 0
+    }
+
+    ctx.putImageData(image, 0, 0)
+}
+
+function generateBlocks() {
+    const count = Math.floor(Math.random() * 5 + 2)
+    for (let i = 0; i < count; i++) {
+        const block = {
+            x: Math.floor(Math.random() * (canv.width - (snake.width / 2))),
+            y: Math.floor(Math.random() * (canv.height - (snake.width / 2)))
+        }
+
+        if (snake.parts.some(part => doRectsOverlap(rectFrom(part), rectFrom(block))) ||
+            doRectsOverlap(rectFrom(block), rectFrom(apple))) {
+            i--
+            continue
+        }
+
+        blocks.push(block)
+    }
 }
 
 function generateApple() {
@@ -96,6 +143,10 @@ function nextColors() {
     return [`hsl(${nextColors.deg++} 65% 50%)`, `hsl(${nextColors.deg++} 65% 30%)`]
 }
 
+function checkBlockCollision() {
+    const head = snake.parts[snake.parts.length - 1]
+    return blocks.some(block => doRectsOverlap(rectFrom(block), rectFrom(head)))
+}
 
 function checkAppleCollision() {
     if (apple.eaten) return
@@ -118,9 +169,15 @@ function checkBorderCollision() {
 }
 
 function rectFrom(part) {
-    const top = part.y, left = part.x,
-          right = left - 1 + (part.dir == 'up' || part.dir == 'down' ? snake.width : part.length),
-          bottom = top - 1 + (part.dir == 'left' || part.dir == 'right' ? snake.width : part.length)
+    const top = part.y, left = part.x
+    let right, bottom
+    if (part.length) {
+        right = left - 1 + (part.dir == 'up' || part.dir == 'down' ? snake.width : part.length),
+        bottom = top - 1 + (part.dir == 'left' || part.dir == 'right' ? snake.width : part.length)
+    } else {
+        right = left + snake.width * 2
+        bottom = top + snake.width * 2
+    }
     return {top, left, right, bottom}
 }
 
@@ -157,6 +214,7 @@ function tick() {
     head.length++
     
     ctx.clearRect(0, 0, canv.width, canv.height)
+    drawBlocks()
     drawApple()
     drawSnake()
     
@@ -164,8 +222,30 @@ function tick() {
         portalSnake()
     }
 
+    if (!snake.strong && checkBlockCollision()) {
+        if (snake.power) {
+            snake.power--
+            powerSpan.innerText = `Power: ${snake.power}`
+            powerSpan.style.fontSize = '40px'
+            snake.strong = true
+            snake.tick -= 100
+            setTimeout(() => {
+                snake.strong = false
+                powerSpan.style.fontSize = '20px'
+                snake.tick += 100
+            }, 2000)
+        } else {
+            loseSpan.style.display = 'unset'
+            clearInterval(tickInterval)
+        }
+    } else {
+        loseSpan.style.display = 'none'
+    }
+
     if (checkAppleCollision()) {
         apple.eaten = true
+        snake.power++
+        powerSpan.innerText = `Power: ${snake.power}`
         setTimeout(generateApple, snake.tick * apple.width)
     }
 
@@ -177,6 +257,8 @@ function tick() {
         turnSnake(snake.nextDir)
         delete snake.nextDir
     }
+
+    tickInterval = setTimeout(tick, snake.tick)
 }
 
 function portalSnake() {
@@ -254,7 +336,11 @@ onkeydown = e => {
     else if (e.key == 'ArrowDown' && (head.dir == 'left' || head.dir == 'right')) snake.nextDir = 'down'
     else if (e.key == 'ArrowLeft' && (head.dir == 'up' || head.dir == 'down')) snake.nextDir = 'left'
     else if (e.key == 'ArrowRight' && (head.dir == 'up' || head.dir == 'down')) snake.nextDir = 'right'
+
+    if (e.key == 'r') location.reload()
 }
 
 // drawSnake()
-setInterval(tick, snake.tick)
+generateBlocks()
+drawBlocks()
+let tickInterval = setTimeout(tick, snake.tick)
