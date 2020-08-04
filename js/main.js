@@ -1,4 +1,5 @@
 const ctx = canv.getContext('2d')
+let isLost = false
 
 const apple = {
     x: 500,
@@ -140,7 +141,7 @@ function rndColor() {
 }
 
 function nextColors() {
-    return [`hsl(${nextColors.deg++} 65% 50%)`, `hsl(${nextColors.deg++} 65% 30%)`]
+    return [`hsl(${nextColors.deg += 10} 65% 50%)`, `hsl(${nextColors.deg++} 65% 30%)`]
 }
 
 function checkBlockCollision() {
@@ -223,21 +224,7 @@ function tick() {
     }
 
     if (!snake.strong && checkBlockCollision()) {
-        if (snake.power) {
-            snake.power--
-            powerSpan.innerText = `Power: ${snake.power}`
-            powerSpan.style.fontSize = '40px'
-            snake.strong = true
-            snake.tick -= 100
-            setTimeout(() => {
-                snake.strong = false
-                powerSpan.style.fontSize = '20px'
-                snake.tick += 100
-            }, 2000)
-        } else {
-            loseSpan.style.display = 'unset'
-            clearInterval(tickInterval)
-        }
+        handleCollision()
     } else {
         loseSpan.style.display = 'none'
     }
@@ -249,7 +236,8 @@ function tick() {
         setTimeout(generateApple, snake.tick * apple.width)
     }
 
-    if (checkSnakeCollision()) {
+    if (!snake.strong && checkSnakeCollision()) {
+        handleCollision();
         [snake.color, snake.colorHead] = nextColors()
     }
 
@@ -258,7 +246,26 @@ function tick() {
         delete snake.nextDir
     }
 
-    tickInterval = setTimeout(tick, snake.tick)
+    if (!isLost) tickInterval = setTimeout(tick, snake.tick)
+}
+
+function handleCollision() {
+    if (snake.power) {
+        snake.power--
+        powerSpan.innerText = `Power: ${snake.power}`
+        powerSpan.style.fontSize = '40px'
+        snake.strong = true
+        snake.tick -= 100
+        setTimeout(() => {
+            snake.strong = false
+            powerSpan.style.fontSize = '20px'
+            snake.tick += 100
+        }, 2000)
+    } else {
+        loseSpan.style.display = 'unset'
+        isLost = true
+        clearTimeout(tickInterval)
+    }
 }
 
 function portalSnake() {
