@@ -3,8 +3,8 @@
     ?-добровольную трату Power (дольше работает)
     ?-счётчик длины змейки на экране
     ?-яблоки разного размера
-    -и появляются по одному, два или три
-    -таблицу рекордов
+    ?-и появляются по одному, два или три
+    !-таблицу рекордов
     -фикс потери змейки за отрицательными координатами
     -паузу
     -рестарт
@@ -24,14 +24,17 @@
 */
 
 const ctx = canv.getContext('2d')
+const records = JSON.parse(localStorage.records || '[]')
 let isLost = false
 
-const apple = {
-    x: 500,
-    y: 300,
-    width: 20,
-    length: 20
-}
+const apples = [
+    {
+        x: 500,
+        y: 300,
+        width: 20,
+        length: 20
+    }
+]
 
 const snake = {
     color: '#1fb9dd',
@@ -39,7 +42,7 @@ const snake = {
     colorApple: '#d86464',
     length: 200,
     width: 20,
-    tick: 10,
+    tick: 3,
     power: 0,
     accelerate: .5,
     parts: [
@@ -78,9 +81,9 @@ function drawSnake() {
     drawSnakeHead()
 }
 
-function drawApple() {
+function drawApples() {
     ctx.fillStyle = snake.colorApple
-    ctx.fillRect(apple.x, apple.y, apple.width, apple.width)
+    apples.forEach(apple => ctx.fillRect(apple.x, apple.y, apple.width, apple.width))
 }
 
 function drawBlocks() {
@@ -113,7 +116,7 @@ function generateBlocks() {
         }
 
         if (snake.parts.some(part => doRectsOverlap(rectFrom(part), rectFrom(block))) ||
-            doRectsOverlap(rectFrom(block), rectFrom(apple))) {
+            doRectsOverlap(rectFrom(block), rectFrom(apples[0]))) {
             i--
             continue
         }
@@ -123,11 +126,18 @@ function generateBlocks() {
 }
 
 function generateApple() {
-    apple.width = Math.floor(Math.random() * 15 + 15)
+    const apple = {}
+    apple.width = apple.length = Math.floor(Math.random() * 15 + 15)
     apple.x = Math.floor(Math.random() * (canv.width - apple.width))
     apple.y = Math.floor(Math.random() * (canv.height - apple.width))
     if (snake.parts.some(part => doRectsOverlap(rectFrom(apple), rectFrom(part)))) return generateApple()
-    apple.eaten = false
+    apples.push(apple)
+}
+
+function generateApples() {
+    const seed = Math.floor(Math.random() * 9)
+    const count = seed < 5 ? 1 : seed < 8 ? 2 : 3
+    for (let i = 0; i < count; i++) generateApple()
 }
 
 function drawSnakeHead() {
@@ -166,9 +176,13 @@ function checkBlockCollision() {
 }
 
 function checkAppleCollision() {
-    if (apple.eaten) return
-    const head = snake.parts[snake.parts.length - 1]
-    return doRectsOverlap(rectFrom(apple), rectFrom(head))
+    const index = apples.findIndex(apple => {
+        if (apple.eaten) return
+        const head = snake.parts[snake.parts.length - 1]
+        return doRectsOverlap(rectFrom(apple), rectFrom(head))
+    })
+
+    return index == -1 ? false : index
 }
 
 function checkSnakeCollision() {
@@ -211,7 +225,7 @@ function tick() {
     const head = snake.parts[snake.parts.length - 1]
     const tail = snake.parts[0]
 
-    if (!apple.eaten) {
+    if (!apples.some(apple => apple.eaten)) {
         if (tail.dir == 'down') tail.y++
         else if (tail.dir == 'right') tail.x++
         tail.length--
@@ -236,7 +250,7 @@ function tick() {
 
     ctx.clearRect(0, 0, canv.width, canv.height)
     drawBlocks()
-    drawApple()
+    drawApples()
     drawSnake()
     
     if (checkBorderCollision()) {
@@ -249,11 +263,18 @@ function tick() {
         loseSpan.style.display = 'none'
     }
 
-    if (checkAppleCollision()) {
+    const appleIndex = checkAppleCollision()
+
+    if (appleIndex !== false) {
+        const apple = apples[appleIndex]
         apple.eaten = true
         snake.power++
         powerSpan.innerText = `Power: ${snake.power}`
-        setTimeout(generateApple, snake.tick * apple.width)
+        const applesLeft = apples.reduce((count, apple) => count += apple.eaten ? 0 : 1, 0)
+        if (!applesLeft) setTimeout(generateApples, snake.tick * apple.width)
+        setTimeout(() => {
+            apples.splice(apples.indexOf(apple), 1)
+        }, snake.tick * apple.width)
     }
 
     if (!snake.strong && checkSnakeCollision()) {
@@ -287,8 +308,23 @@ function handleCollision() {
         usePower()
     } else {
         loseSpan.style.display = 'unset'
+        if (snake.length > 200) {
+            records.push([snake.length, new Date().toLocaleString()])
+            localStorage.records = JSON.stringify(records.sort().reverse())
+        }
+        console.log(records)
         isLost = true
         clearTimeout(tickInterval)
+
+        records.forEach(record => {
+            recordList.innerHTML += /*html*/`
+                <li>
+                    <span>${snake.length == record[0] ? `<big><b>${record[0]}</b></big>` : record[0]}</span>
+                    <span>${record[1]}</span>
+                </li>
+            `
+        })
+        recordList.className = 'active'
     }
 }
 

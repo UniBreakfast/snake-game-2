@@ -53,3 +53,30 @@ body {
     text-align: center;
     /* color: rgb(66, 88, 112); */
 }
+
+#recordList {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    list-style: none;
+    color: #00ffff;
+}
+
+#recordList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 300px;
+    font-size: 20px;
+    margin-top: 15px;
+}
+
+#recordList.active {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
