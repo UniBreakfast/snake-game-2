@@ -1,3 +1,28 @@
+/*
+    ?-Сделать, чтобы яблоко не могло появиться на змейке
+    ?-добровольную трату Power (дольше работает)
+    ?-счётчик длины змейки на экране
+    ?-яблоки разного размера
+    -и появляются по одному, два или три
+    -таблицу рекордов
+    -фикс потери змейки за отрицательными координатами
+    -паузу
+    -рестарт
+    -больше блоков
+    -блоки не пересекают стенки больше, чем на 2/3
+    -второй прямоугольник головы пофиксить при выездах за экран
+    -спидометр
+    -секундомер
+    -счётчик столкновений
+    -пересеканий экрана
+    -поворотов
+    -пробега
+    -изгибов
+    -угасание змейки к хвосту
+    -другая голова (квадратная) отдельным объектом
+    -проверка столкновений по нему
+*/
+
 const ctx = canv.getContext('2d')
 let isLost = false
 
@@ -12,10 +37,11 @@ const snake = {
     color: '#1fb9dd',
     colorHead: '#00ffff',
     colorApple: '#d86464',
-    length: 400,
+    length: 200,
     width: 20,
     tick: 10,
     power: 0,
+    accelerate: .5,
     parts: [
         {
             x: 100,
@@ -27,18 +53,6 @@ const snake = {
             x: 120,
             y: 180,
             length: 100,
-            dir: 'right'
-        },
-        {
-            x: 200,
-            y: 130,
-            length: 50,
-            dir: 'up'
-        },
-        {
-            x: 220,
-            y: 130,
-            length: 150,
             dir: 'right'
         }
     ]
@@ -109,8 +123,10 @@ function generateBlocks() {
 }
 
 function generateApple() {
+    apple.width = Math.floor(Math.random() * 15 + 15)
     apple.x = Math.floor(Math.random() * (canv.width - apple.width))
     apple.y = Math.floor(Math.random() * (canv.height - apple.width))
+    if (snake.parts.some(part => doRectsOverlap(rectFrom(apple), rectFrom(part)))) return generateApple()
     apple.eaten = false
 }
 
@@ -194,6 +210,7 @@ function doRectsOverlap(rect1, rect2) {
 function tick() {
     const head = snake.parts[snake.parts.length - 1]
     const tail = snake.parts[0]
+
     if (!apple.eaten) {
         if (tail.dir == 'down') tail.y++
         else if (tail.dir == 'right') tail.x++
@@ -214,6 +231,9 @@ function tick() {
     else if (head.dir == 'up') head.y--
     head.length++
     
+    snake.length = snake.parts.reduce((sum, part) => sum + part.length, 0)
+    snakeLengthSpan.innerText = `Snake length: ${snake.length}`
+
     ctx.clearRect(0, 0, canv.width, canv.height)
     drawBlocks()
     drawApple()
@@ -249,18 +269,22 @@ function tick() {
     if (!isLost) tickInterval = setTimeout(tick, snake.tick)
 }
 
+function usePower() {
+    snake.power--
+    powerSpan.innerText = `Power: ${snake.power}`
+    powerSpan.style.fontSize = '40px'
+    snake.strong = true
+    snake.tick *= snake.accelerate
+    setTimeout(() => {
+        snake.strong = false
+        powerSpan.style.fontSize = '20px'
+        snake.tick /= snake.accelerate
+    }, 5000)
+}
+
 function handleCollision() {
     if (snake.power) {
-        snake.power--
-        powerSpan.innerText = `Power: ${snake.power}`
-        powerSpan.style.fontSize = '40px'
-        snake.strong = true
-        snake.tick -= 100
-        setTimeout(() => {
-            snake.strong = false
-            powerSpan.style.fontSize = '20px'
-            snake.tick += 100
-        }, 2000)
+        usePower()
     } else {
         loseSpan.style.display = 'unset'
         isLost = true
@@ -345,6 +369,7 @@ onkeydown = e => {
     else if (e.key == 'ArrowRight' && (head.dir == 'up' || head.dir == 'down')) snake.nextDir = 'right'
 
     if (e.key == 'r') location.reload()
+    else if (e.key == ' ' && !snake.strong && snake.power) usePower()
 }
 
 // drawSnake()
