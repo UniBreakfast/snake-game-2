@@ -4,28 +4,29 @@
     ?-счётчик длины змейки на экране
     ?-яблоки разного размера
     ?-и появляются по одному, два или три
-    !-таблицу рекордов
-    -фикс потери змейки за отрицательными координатами
-    -паузу
-    -рестарт
-    -больше блоков
-    -блоки не пересекают стенки больше, чем на 2/3
-    -второй прямоугольник головы пофиксить при выездах за экран
-    -спидометр
-    -секундомер
-    -счётчик столкновений
-    -пересеканий экрана
+    ?-таблицу рекордов
+    ?-фикс потери змейки за отрицательными координатами
+    ?-паузу
+    ?-рестарт
+    ?-больше блоков
+    ?-блоки не пересекают стенки
+    ?-второй прямоугольник головы пофиксить при выездах за экран
+    !-спидометр
+    ?-секундомер
+    ?-счётчик столкновений
+    ?-пересеканий экрана
     -поворотов
-    -пробега
-    -изгибов
-    -угасание змейки к хвосту
-    -другая голова (квадратная) отдельным объектом
-    -проверка столкновений по нему
+    ?-пробега
+    ?-изгибов
+    ?-угасание змейки к хвосту
+    !-другая голова (квадратная) отдельным объектом
+    !-проверка столкновений по нему
 */
 
 const ctx = canv.getContext('2d')
 const records = JSON.parse(localStorage.records || '[]')
 let isLost = false
+let showdownCount = 0, migrateCount = 0, distance = 0, rotateCount = 0
 
 const apples = [
     {
@@ -42,9 +43,9 @@ const snake = {
     colorApple: '#d86464',
     length: 200,
     width: 20,
-    tick: 3,
+    tick: 14,
     power: 0,
-    accelerate: .5,
+    accelerate: 2,
     parts: [
         {
             x: 100,
@@ -73,11 +74,26 @@ nextColors.deg = 0;
 
 function drawSnake() {
     ctx.fillStyle = snake.color
-    snake.parts.forEach(part => {
-        // ctx.fillStyle = rndColor()
-        if (part.dir == 'up' || part.dir == 'down')  ctx.fillRect(part.x, part.y, snake.width, part.length)
+    let turns = 0, portals = 0, lastDir
+    let i = 0
+
+    snake.parts.reduceRight((_, part) => {
+        ctx.fillStyle = snake.color
+        ctx.fillStyle = ctx.fillStyle + (255 - Math.min(200, 3*i++)).toString(16)
+        if (part.dir == 'up' || part.dir == 'down') ctx.fillRect(part.x, part.y, snake.width, part.length)
         else ctx.fillRect(part.x, part.y, part.length, snake.width)
-    })
+
+        if (lastDir) {
+            if (lastDir != part.dir) turns++
+            else portals++
+        }
+
+        rotateCountSpan.innerText = `Изгибов: ${turns}`
+        portalsCountSpan.innerText = `Порталов: ${portals}`
+
+        lastDir = part.dir
+    }, 0)
+
     drawSnakeHead()
 }
 
@@ -97,7 +113,7 @@ function drawBlocks2() {
     const image = ctx.getImageData(0, 0, canv.width, canv.height)
     const { data } = image
     const steps = data.length / 4
-    
+
     for (let i = 0; i < steps; i += 4) {
         const color = data.slice(i, i + 4).join()
         if (color == '0,0,0,0' || color == '66,88,112,255') continue
@@ -108,11 +124,11 @@ function drawBlocks2() {
 }
 
 function generateBlocks() {
-    const count = Math.floor(Math.random() * 5 + 2)
+    const count = Math.floor(Math.random() * 19 + 1)
     for (let i = 0; i < count; i++) {
         const block = {
-            x: Math.floor(Math.random() * (canv.width - (snake.width / 2))),
-            y: Math.floor(Math.random() * (canv.height - (snake.width / 2)))
+            x: Math.floor(Math.random() * (canv.width - (snake.width * 2))),
+            y: Math.floor(Math.random() * (canv.height - (snake.width * 2)))
         }
 
         if (snake.parts.some(part => doRectsOverlap(rectFrom(part), rectFrom(block))) ||
@@ -143,19 +159,22 @@ function generateApples() {
 function drawSnakeHead() {
     let head = snake.parts[snake.parts.length - 1]
     ctx.fillStyle = snake.colorHead
+
     if (head.length > snake.width) {
         if (head.dir == 'up' || head.dir == 'left') ctx.fillRect(head.x, head.y, snake.width, snake.width)
         else if (head.dir == 'down') ctx.fillRect(head.x, head.y + head.length - snake.width, snake.width, snake.width)
         else ctx.fillRect(head.x + head.length - snake.width, head.y, snake.width, snake.width)
     } else {
-        if (head.dir == 'up' || head.dir == 'down')  ctx.fillRect(head.x, head.y, snake.width, head.length)
+        if (head.dir == 'up' || head.dir == 'down') ctx.fillRect(head.x, head.y, snake.width, head.length)
         else ctx.fillRect(head.x, head.y, head.length, snake.width)
+
         const neck = snake.parts[snake.parts.length - 2]
-        if (head.dir == 'up') ctx.fillRect(head.x, neck.y, snake.width, snake.width - head.length)
-        else if (head.dir == 'down') ctx.fillRect(head.x, neck.y + head.length,
-            snake.width, snake.width - head.length)
-        else if (head.dir == 'left') ctx.fillRect(neck.x, head.y, snake.width - head.length, snake.width)
-        else ctx.fillRect(neck.x + head.length, head.y, snake.width - head.length, snake.width)
+        
+        // if (head.dir == 'up') ctx.fillRect(head.x, neck.y, snake.width, snake.width - head.length)
+        // else if (head.dir == 'down') ctx.fillRect(head.x, neck.y + head.length, snake.width, snake.width - head.length)
+        // else if (head.dir == 'left') ctx.fillRect(neck.x, head.y, snake.width - head.length, snake.width)
+        // else ctx.fillRect(neck.x + head.length, head.y, snake.width - head.length, snake.width)
+        
         if (head.dir == 'up' || head.dir == 'left') ctx.fillRect(head.x, head.y, snake.width, snake.width)
         else if (head.dir == 'down') ctx.fillRect(head.x, head.y + head.length - snake.width, snake.width, snake.width)
         else ctx.fillRect(head.x + head.length - snake.width, head.y, snake.width, snake.width)
@@ -196,20 +215,20 @@ function checkBorderCollision() {
     const head = snake.parts[snake.parts.length - 1]
     return !(head.x >= 0 && head.y >= 0 && (head.dir == "left" || head.dir == "right" ?
         (head.x + head.length < canv.width && head.y + snake.width < canv.height) :
-            (head.x + snake.width < canv.width && head.y + head.length < canv.height)))
+        (head.x + snake.width < canv.width && head.y + head.length < canv.height)))
 }
 
 function rectFrom(part) {
     const top = part.y, left = part.x
     let right, bottom
-    if (part.length) {
+    if (part.length !== undefined) {
         right = left - 1 + (part.dir == 'up' || part.dir == 'down' ? snake.width : part.length),
-        bottom = top - 1 + (part.dir == 'left' || part.dir == 'right' ? snake.width : part.length)
+            bottom = top - 1 + (part.dir == 'left' || part.dir == 'right' ? snake.width : part.length)
     } else {
         right = left + snake.width * 2
         bottom = top + snake.width * 2
     }
-    return {top, left, right, bottom}
+    return { top, left, right, bottom }
 }
 
 function doRectsOverlap(rect1, rect2) {
@@ -224,6 +243,9 @@ function doRectsOverlap(rect1, rect2) {
 function tick() {
     const head = snake.parts[snake.parts.length - 1]
     const tail = snake.parts[0]
+
+    distance++
+    distanceSpan.innerText = `Пробег: ${distance}`
 
     if (!apples.some(apple => apple.eaten)) {
         if (tail.dir == 'down') tail.y++
@@ -241,10 +263,10 @@ function tick() {
         snake.parts.shift()
     }
 
-    if (head.dir == 'left') head.x--
-    else if (head.dir == 'up') head.y--
+    if (head.dir == 'left') head.x = head.x > -5 ? head.x - 1 : 0
+    else if (head.dir == 'up') head.y = head.y > -5 ? head.y - 1 : 0
     head.length++
-    
+
     snake.length = snake.parts.reduce((sum, part) => sum + part.length, 0)
     snakeLengthSpan.innerText = `Snake length: ${snake.length}`
 
@@ -252,7 +274,7 @@ function tick() {
     drawBlocks()
     drawApples()
     drawSnake()
-    
+
     if (checkBorderCollision()) {
         portalSnake()
     }
@@ -295,17 +317,19 @@ function usePower() {
     powerSpan.innerText = `Power: ${snake.power}`
     powerSpan.style.fontSize = '40px'
     snake.strong = true
-    snake.tick *= snake.accelerate
+    snake.tick /= snake.accelerate
     setTimeout(() => {
         snake.strong = false
         powerSpan.style.fontSize = '20px'
-        snake.tick /= snake.accelerate
+        snake.tick *= snake.accelerate
     }, 5000)
 }
 
 function handleCollision() {
     if (snake.power) {
         usePower()
+        showdownCount++
+        showdownCountSpan.innerText = `Столкновений: ${showdownCount}`
     } else {
         loseSpan.style.display = 'unset'
         if (snake.length > 200) {
@@ -316,6 +340,7 @@ function handleCollision() {
         isLost = true
         clearTimeout(tickInterval)
 
+        recordList.innerHTML = ''
         records.forEach(record => {
             recordList.innerHTML += /*html*/`
                 <li>
@@ -330,8 +355,11 @@ function handleCollision() {
 
 function portalSnake() {
     const head = snake.parts[snake.parts.length - 1]
-    const newHead = {length: 0}
+    const newHead = { length: 0 }
     head.portal = true
+
+    migrateCount++
+    migrateCountSpan.innerText = `Побегов: ${migrateCount}`
 
     if (head.dir == 'up') {
         Object.assign(newHead, {
@@ -364,7 +392,7 @@ function portalSnake() {
 
 function turnSnake(dir) {
     const head = snake.parts[snake.parts.length - 1]
-    const newHead = {length: 0}
+    const newHead = { length: 0 }
 
     if (dir == 'up') {
         Object.assign(newHead, {
@@ -395,6 +423,22 @@ function turnSnake(dir) {
     snake.parts.push(newHead)
 }
 
+function timer() {
+    seconds++
+
+    if (seconds >= 60) {
+        seconds = 0
+        minutes++
+    }
+
+    if (minutes >= 60) {
+        minutes = 0
+        hours++
+    }
+
+    timerSpan.innerText = `Время: ${hours.toString().length == 1 ? `0${hours}` : hours}:${minutes.toString().length == 1 ? `0${minutes}` : minutes}:${seconds.toString().length == 1 ? `0${seconds}` : seconds}`
+}
+
 onkeydown = e => {
     const head = snake.parts[snake.parts.length - 1]
     if (!head.length) return
@@ -406,9 +450,39 @@ onkeydown = e => {
 
     if (e.key == 'r') location.reload()
     else if (e.key == ' ' && !snake.strong && snake.power) usePower()
+    else if (e.key == 'Escape') {
+        if (tickInterval) {
+            clearTimeout(tickInterval)
+            tickInterval = 0
+            recordList.className = 'active'
+        } else {
+            tickInterval = setTimeout(tick, snake.tick)
+            recordList.className = ''
+        }
+
+        if (timerInterval) {
+            clearInterval(timerInterval)
+            timerInterval = 0
+        } else timerInterval = setInterval(timer, 1000)
+    } else if (e.key == 'Backspace') {
+        snake.power = 0
+        handleCollision()
+    }
 }
 
 // drawSnake()
 generateBlocks()
 drawBlocks()
 let tickInterval = setTimeout(tick, snake.tick)
+
+let hours = 0, minutes = 0, seconds = 0
+let timerInterval = setInterval(timer, 1000)
+
+records.forEach(record => {
+    recordList.innerHTML += /*html*/`
+        <li>
+            <span>${snake.length == record[0] ? `<big><b>${record[0]}</b></big>` : record[0]}</span>
+            <span>${record[1]}</span>
+        </li>
+    `
+})
