@@ -26,7 +26,7 @@
 const ctx = canv.getContext('2d')
 const records = JSON.parse(localStorage.records || '[]')
 let isLost = false
-let showdownCount = 0, migrateCount = 0, distance = 0, rotateCount = 0
+let showdownCount = 0, migrateCount = 0, distance = 0, rotateCount = 0, applesCount = 0
 
 const apples = [
     {
@@ -268,7 +268,7 @@ function tick() {
     head.length++
 
     snake.length = snake.parts.reduce((sum, part) => sum + part.length, 0)
-    snakeLengthSpan.innerText = `Snake length: ${snake.length}`
+    snakeLengthSpan.innerText = `Длина: ${snake.length}`
 
     ctx.clearRect(0, 0, canv.width, canv.height)
     drawBlocks()
@@ -291,7 +291,9 @@ function tick() {
         const apple = apples[appleIndex]
         apple.eaten = true
         snake.power++
-        powerSpan.innerText = `Power: ${snake.power}`
+        applesCount++
+        applesCountSpan.innerText = `Яблок: ${applesCount}`
+        powerSpan.innerText = `Сила: ${snake.power}`
         const applesLeft = apples.reduce((count, apple) => count += apple.eaten ? 0 : 1, 0)
         if (!applesLeft) setTimeout(generateApples, snake.tick * apple.width)
         setTimeout(() => {
@@ -314,7 +316,7 @@ function tick() {
 
 function usePower() {
     snake.power--
-    powerSpan.innerText = `Power: ${snake.power}`
+    powerSpan.innerText = `Сила: ${snake.power}`
     powerSpan.style.fontSize = '40px'
     snake.strong = true
     snake.tick /= snake.accelerate
@@ -329,7 +331,7 @@ function handleCollision() {
     if (snake.power) {
         usePower()
         showdownCount++
-        showdownCountSpan.innerText = `Столкновений: ${showdownCount}`
+        showdownCountSpan.innerText = `Ударов: ${showdownCount}`
     } else {
         loseSpan.style.display = 'unset'
         if (snake.length > 200) {
@@ -436,7 +438,7 @@ function timer() {
         hours++
     }
 
-    timerSpan.innerText = `Время: ${hours.toString().length == 1 ? `0${hours}` : hours}:${minutes.toString().length == 1 ? `0${minutes}` : minutes}:${seconds.toString().length == 1 ? `0${seconds}` : seconds}`
+    timerSpan.innerText = `${hours.toString().length == 1 ? `0${hours}` : hours}:${minutes.toString().length == 1 ? `0${minutes}` : minutes}:${seconds.toString().length == 1 ? `0${seconds}` : seconds}`
 }
 
 onkeydown = e => {
