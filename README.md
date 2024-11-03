@@ -1,4 +1,4 @@
-# snake-game-2
+# [snake-game-2](https://github.com/UniBreakfast/snake-game-2)
 
 Written with a student in course of several lessons.
 
